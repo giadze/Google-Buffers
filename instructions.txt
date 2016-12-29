@@ -1,0 +1,52 @@
+﻿HW2 CS417 – Writeup 
+
+Done by: George Iadze & Johnny Polanco
+
+How to Compile
+
+Make sure you have google porotocol buffers installed correctly. Compile the the placedata.proto using protoc, execute the following: 
+
+    protoc placedata.proto --java_out="absolute path to your directory"
+
+    to create a package (whose folder name is specified in the .proto file as PlaceData). 
+
+    Now do the same thing for the airportdata.proto (whose folder name is going to be AirportData). 
+    
+    protoc airportdata.proto --java_out="absolute path to your directory”
+
+    
+    These will produce two folders in the current directory. Be sure to include protobuf.jar file in the classpath when the following. Then make sure you are in the root directory, execute the following: 
+
+    javac -cp ".:./protobuf.jar" *.java AirportData/AirportDataProto.java PlaceData/PlaceDataProto.java
+
+    This will compile all the code. 
+
+How to Run
+
+Run the rmiregistry and listen on a port of your choosing (be sure to run rmiregistry in the same directory as all the files). An example with port 1099 is as follow:
+
+rmiregistry 1099
+
+Start up a new terminal for each of the following commands. Make sure you're in the assignment2 directory and run the following commands. For running the servers, you can append an optional argument containing the port for the rmiserver. By default, it will use 1099.
+
+java -cp ".:./protobuf.jar" -Djava.security.maner -D"java.security.policy=policy" PlaceServer
+java -cp ".:./protobuf.jar" -Djava.security.maner -D"java.security.policy=policy" AirportServer
+
+
+Start up yet another terminal. Client accepts an optional -p argument containing port and an optional -h argument containing rmi_registryserver. The default for port is 1099 and for rmi_registryserver is localhost. While those are optional, the client does require two arguments though containing a city and a state for the search. For example, with all the optional arguments is as follow:
+
+java -cp ".:./protobuf.jar" Client -p 1099 -h localhost Newark NJ
+
+
+
+How Data is Stored
+
+Instance of their services are created when the servers run. Then the .proto file which contains the all the information about place or airport is read by the constructor and saved in memory. If the location is not correct, then the variable is null and returns a RemoteResult object with enum value of RemoteErrorCode.FILENOTFOUND, which is handled by the client.
+
+How data is searched for
+
+When the client uses the naming lookup to get either the Airport or Plane service stub object, this object has a stub method to perform its own "lookup". Before any calls to lookup thought, the object should already have loaded all of the places/airports from when it was first initialized in the constructor, not during the lookup call. So, since all the data is already stored, all it has to do is to lookup is simply traverse through the list of airports/places and finds matches. To find a place, it matches user provided city using startsWith and the state match entirely, case insensitive. 
+
+To find the 5 nearest airports, latitude and longitude coordinates are passed into the lookup function. The service object creates a MinHeap based on distance and goes through each of the airports in its list. For each airport, distance between the given coordinates and the airports coordinates are calculated, and placed into the MinHeap. Once all the airports have been processed, the top 5 airport objects and their distances in the MinHeap are polled and placed into an array which is returned.
+
+
